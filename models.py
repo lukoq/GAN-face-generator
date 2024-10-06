@@ -1,31 +1,28 @@
 import torch
 import torch.nn as nn
 
+channel = 1
 
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
 
         # Warstwy enkodera
-        self.encoder1 = self.encoder_block(1, 64)  # 32x32 -> 16x16
+        self.encoder1 = self.encoder_block(channel, 64)  # 32x32 -> 16x16
         self.encoder2 = self.encoder_block(64, 128)  # 16x16 -> 8x8
         self.encoder3 = self.encoder_block(128, 256)  # 8x8 -> 4x4
 
-        # Warstwa bottleneck
         self.bottleneck = self.bottleneck_block(256, 512)  # 4x4 -> 2x2
 
-        # Warstwy dekodera
         self.decoder3 = self.decoder_block(512, 256)  # 2x2 -> 4x4
         self.decoder2 = self.decoder_block(256, 128)  # 4x4 -> 8x8
         self.decoder1 = self.decoder_block(128, 64)  # 8x8 -> 16x16
 
-        # Skip connection warstwy
         self.skip_conv3 = nn.Conv2d(512, 256, kernel_size=1)
         self.skip_conv2 = nn.Conv2d(256, 128, kernel_size=1)
         self.skip_conv1 = nn.Conv2d(128, 64, kernel_size=1)
 
-        # Warstwa wyjściowa
-        self.final_conv = nn.ConvTranspose2d(64, 1, kernel_size=4, stride=2, padding=1)  # 16x16 -> 32x32
+        self.final_conv = nn.ConvTranspose2d(64, channel, kernel_size=4, stride=2, padding=1)  # 16x16 -> 32x32
 
     def encoder_block(self, in_channels, out_channels):
         return nn.Sequential(
@@ -81,14 +78,14 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         # Warstwy konwolucyjne
-        self.conv1 = self.discriminator_block(1, 64, batch_norm=False)  # 32x32 -> 16x16
+        self.conv1 = self.discriminator_block(channel, 64, batch_norm=False)  # 32x32 -> 16x16
         self.conv2 = self.discriminator_block(64, 128)  # 16x16 -> 8x8
         self.conv3 = self.discriminator_block(128, 256)  # 8x8 -> 4x4
         self.conv4 = self.discriminator_block(256, 512)  # 4x4 -> 2x2
 
         # Warstwa w pełni połączona
-        self.fc = nn.Linear(512 * 2 * 2, 1)  # Zmiana wymiaru na jeden wynik (real/fake)
-        self.sigmoid = nn.Sigmoid()  # Sigmoid do klasyfikacji binarnej (prawdziwy/fałszywy)
+        self.fc = nn.Linear(512 * 2 * 2, 1)
+        self.sigmoid = nn.Sigmoid()
 
     def discriminator_block(self, in_channels, out_channels, batch_norm=True):
         layers = [

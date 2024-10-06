@@ -8,11 +8,14 @@ from models import *
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
+channel = 1
+width = 32
+height = 32
 
 def train_discriminator(discriminator, real_data, fake_data, optimizer, loss_fn):
     optimizer.zero_grad()
 
-    real_data = real_data.view(-1, 1, 32, 32)
+    real_data = real_data.view(-1, channel, width, height)
     real_preds = discriminator(real_data)
     real_loss = loss_fn(real_preds, torch.ones_like(real_preds) * 0.9)
 
@@ -29,7 +32,7 @@ def train_discriminator(discriminator, real_data, fake_data, optimizer, loss_fn)
 def train_generator(generator, discriminator, optimizer, loss_fn):
     optimizer.zero_grad()
 
-    noise = torch.randn(64, 1, 32, 32).to(device)
+    noise = torch.randn(64, channel, width, height).to(device)
     fake_data = generator(noise)
 
     fake_preds = discriminator(fake_data)
@@ -43,14 +46,14 @@ def train_generator(generator, discriminator, optimizer, loss_fn):
 
 
 def evaluate_generator(generator, discriminator):
-    noise = torch.randn(64, 1, 32, 32).to(device)
+    noise = torch.randn(64, channel, width, height).to(device)
     fake_data = generator(noise)
     fake_preds = discriminator(fake_data)
     return fake_preds.mean().item()
 
 
 def show_images(generator):
-    noise = torch.randn(16, 1, 32, 32).to(device)
+    noise = torch.randn(4, channel, 32, 32).to(device)
     fake_images = generator(noise)
 
     # Tworzenie siatki obrazów
@@ -65,15 +68,14 @@ def show_images(generator):
 
 
 transform = transforms.Compose([
-    transforms.Grayscale(),  # Konwersja do skali szarości
-    transforms.Resize((32, 32)),  # Zmiana rozmiaru obrazów do 32x32
+    #transforms.Grayscale(),
+    transforms.Resize((width, height)),  # Zmiana rozmiaru obrazów
     transforms.ToTensor(),  # Konwersja do tensora
-    transforms.Normalize((0.5,), (0.5,))  # Normalizacja do zakresu [-1, 1]
+    #transforms.Normalize((0.5,), (0.5,))  # Normalizacja do zakresu [-1, 1]
 ])
 
 dataset = datasets.ImageFolder(root='data/yale', transform=transform)
 data_loader = DataLoader(dataset, batch_size=64, shuffle=True)
-
 generator = Generator().to(device)
 
 # Inicjalizacja dyskryminatora
@@ -86,17 +88,17 @@ loss_fn = nn.BCELoss()
 g_losses = []
 d_losses = []
 
-for epoch in range(1000):  # Liczba epok treningowych
+for epoch in range(500):  # Liczba epok treningowych
     g_epoch_loss = 0.0
     d_epoch_loss = 0.0
     for real_images, _ in data_loader:
         real_images = real_images.to(device)
         # Trenuj dyskryminator
         if epoch % 2 == 0:
-            noise = torch.randn(64, 1, 32, 32).to(device)
+            noise = torch.randn(64, channel, width, height).to(device)
             fake_images = generator(noise).detach()
             d_loss = train_discriminator(discriminator, real_images, fake_images, d_optimizer, loss_fn)
-            d_epoch_loss += d_loss  # Zaktualizuj stratę dyskryminatora
+            d_epoch_loss += d_loss
 
         # Trenuj generator
         fitness_scores = []
@@ -112,5 +114,5 @@ for epoch in range(1000):  # Liczba epok treningowych
     d_losses.append(d_epoch_loss / len(data_loader))
 
     print(f'Epoch {epoch + 1} has ended.')
-    if epoch > 300 and epoch % 20 == 0:
+    if epoch % 50 == 0:
         show_images(generator)
