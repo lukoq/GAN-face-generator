@@ -8,14 +8,17 @@ from models import *
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-channel = 1
-width = 32
-height = 32
+CHANNEL = 1
+SHAPE = 32
+BATCH_SIZE = 64
+EPOCH = 420
+DATASET_PATH = 'data/yale'
+
 
 def train_discriminator(discriminator, real_data, fake_data, optimizer, loss_fn):
     optimizer.zero_grad()
 
-    real_data = real_data.view(-1, channel, width, height)
+    real_data = real_data.view(-1, CHANNEL, SHAPE, SHAPE)
     real_preds = discriminator(real_data)
     real_loss = loss_fn(real_preds, torch.ones_like(real_preds) * 0.9)
 
@@ -32,7 +35,7 @@ def train_discriminator(discriminator, real_data, fake_data, optimizer, loss_fn)
 def train_generator(generator, discriminator, optimizer, loss_fn):
     optimizer.zero_grad()
 
-    noise = torch.randn(64, channel, width, height).to(device)
+    noise = torch.randn(BATCH_SIZE, CHANNEL, SHAPE, SHAPE).to(device)
     fake_data = generator(noise)
 
     fake_preds = discriminator(fake_data)
@@ -46,40 +49,57 @@ def train_generator(generator, discriminator, optimizer, loss_fn):
 
 
 def evaluate_generator(generator, discriminator):
-    noise = torch.randn(64, channel, width, height).to(device)
+    noise = torch.randn(BATCH_SIZE, CHANNEL, SHAPE, SHAPE).to(device)
     fake_data = generator(noise)
     fake_preds = discriminator(fake_data)
     return fake_preds.mean().item()
 
 
+def wasserstein_loss(y_pred, y_true):
+    return torch.mean(y_true * y_pred)
+
+
 def show_images(generator):
-    noise = torch.randn(4, channel, 32, 32).to(device)
-    fake_images = generator(noise)
+    for _ in range(1):
+        noise = torch.randn(16, CHANNEL, SHAPE, SHAPE).to(device)
+        fake_images = generator(noise)
 
-    # Tworzenie siatki obrazów
-    grid_img = torchvision.utils.make_grid(fake_images, nrow=4, normalize=True)
+        grid_img = torchvision.utils.make_grid(fake_images, nrow=4, normalize=True)
+        grid_img = grid_img.cpu().numpy()
 
-    grid_img = grid_img.cpu().numpy()  # Kopiowanie do pamięci hosta i konwersja
+        plt.imshow(grid_img.transpose(1, 2, 0))
+        plt.axis('off')
+        plt.show()
 
-    # Wyświetlanie obrazu
-    plt.imshow(grid_img.transpose(1, 2, 0))
-    plt.axis('off')  # Ukrycie osi
+
+def plot_losses(g_losses, d_losses):
+    epochs = range(1, len(g_losses) + 1)
+
+    plt.plot(epochs, g_losses, label='Generator Loss')
+    plt.plot(epochs, d_losses, label='Discriminator Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Generator and Discriminator Loss')
+    plt.legend()
+
     plt.show()
 
 
 transform = transforms.Compose([
-    #transforms.Grayscale(),
-    transforms.Resize((width, height)),  # Zmiana rozmiaru obrazów
-    transforms.ToTensor(),  # Konwersja do tensora
-    #transforms.Normalize((0.5,), (0.5,))  # Normalizacja do zakresu [-1, 1]
+    # transforms.Grayscale(),
+    transforms.Resize((SHAPE, SHAPE)),
+    transforms.ToTensor(),
 ])
 
-dataset = datasets.ImageFolder(root='data/yale', transform=transform)
-data_loader = DataLoader(dataset, batch_size=64, shuffle=True)
-generator = Generator().to(device)
+dataset = datasets.ImageFolder(root=DATASET_PATH, transform=transform)
+data_loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
-# Inicjalizacja dyskryminatora
-discriminator = Discriminator().to(device)
+if SHAPE > 32:
+    generator = EnhancedGenerator(CHANNEL).to(device)
+    discriminator = EnhancedDiscriminator(CHANNEL).to(device)
+else:
+    generator = Generator(CHANNEL).to(device)
+    discriminator = Discriminator(CHANNEL).to(device)
 
 d_optimizer = optim.Adam(discriminator.parameters(), lr=0.0001, betas=(0.5, 0.999))
 g_optimizers = optim.Adam(generator.parameters(), lr=0.0001, betas=(0.5, 0.999))
@@ -88,31 +108,29 @@ loss_fn = nn.BCELoss()
 g_losses = []
 d_losses = []
 
-for epoch in range(500):  # Liczba epok treningowych
+for epoch in range(EPOCH):
     g_epoch_loss = 0.0
     d_epoch_loss = 0.0
     for real_images, _ in data_loader:
         real_images = real_images.to(device)
-        # Trenuj dyskryminator
         if epoch % 2 == 0:
-            noise = torch.randn(64, channel, width, height).to(device)
+            noise = torch.randn(BATCH_SIZE, CHANNEL, SHAPE, SHAPE).to(device)
             fake_images = generator(noise).detach()
             d_loss = train_discriminator(discriminator, real_images, fake_images, d_optimizer, loss_fn)
             d_epoch_loss += d_loss
 
-        # Trenuj generator
-        fitness_scores = []
         g_loss = train_generator(generator, discriminator, g_optimizers, loss_fn)
-        g_epoch_loss += g_loss  # Zaktualizuj stratę generatora
-        fitness_score = evaluate_generator(generator, discriminator)
-        fitness_scores.append(fitness_score)
+        g_epoch_loss += g_loss
 
-        #print(fitness_scores)
-
-    # Zapisz średnie straty dla generatora i dyskryminatora w tej epoce
     g_losses.append(g_epoch_loss / len(data_loader))
     d_losses.append(d_epoch_loss / len(data_loader))
 
+    fitness_scores = []
+    fitness_score = evaluate_generator(generator, discriminator)
+    fitness_scores.append(fitness_score)
+
+
     print(f'Epoch {epoch + 1} has ended.')
-    if epoch % 50 == 0:
+    if epoch % 50 == 0:  # Monitor progress after every 50 epochs
+        plot_losses(g_losses, d_losses)
         show_images(generator)
