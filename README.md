@@ -6,7 +6,7 @@ Generative Adversarial Networks (GANs) are a class of machine learning models de
 
 ## Diagram
 
-![alt text](https://raw.githubusercontent.com/lukoq/GAN-face-generator/refs/heads/main/resources/choreographydiagram.png?token=GHSAT0AAAAAACXM3XGOGYDJL652FAH3MNNCZYGLS2Q)
+![alt text](./resources/choreographydiagram.png)
 
 
 ## U-Net Architecture
@@ -14,7 +14,7 @@ Generative Adversarial Networks (GANs) are a class of machine learning models de
 * **Contracting path (Encoder)** - series of convolutional and down-sampling layers. Compresses the image to a lower-dimensional feature space.
 * **Expanding path (Decoder)** - series of transposed convolutions (up-sampling). Includes skip connections between corresponding layers of the encoder and decoder.
 
-![alt text](https://raw.githubusercontent.com/lukoq/GAN-face-generator/refs/heads/main/resources/plot_loss.png?token=GHSAT0AAAAAACXM3XGO43BHHUAHELDE4ZQUZYGOQKQ)
+![alt text](./resources/plot_loss.png)
 
 ## Training and effects
 
@@ -22,4 +22,4 @@ In my GAN project, I trained the model using two distinct datasets.
 * Extended Yale Face Database B - [click](http://cvc.cs.yale.edu/cvc/projects/yalefacesB/yalefacesB.html)
 * CelebA Dataset - [click](https://www.kaggle.com/datasets/jessicali9530/celeba-dataset)
 
-![alt text](https://raw.githubusercontent.com/lukoq/GAN-face-generator/refs/heads/main/resources/output.png?token=GHSAT0AAAAAACXM3XGPNBKXPIUXBWWJEPPGZYGON4A)
+![alt text](./resources/output.png)
