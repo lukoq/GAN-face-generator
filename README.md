@@ -23,3 +23,14 @@ In my GAN project, I trained the model using two distinct datasets.
 * CelebA Dataset - [click](https://www.kaggle.com/datasets/jessicali9530/celeba-dataset)
 
 ![alt text](./resources/output.png)
+
+High-quality results:
+<p align="left">
+  <img width="300" height="300" alt="Screenshot 2024-10-15 190827" src="https://github.com/user-attachments/assets/2a188522-a75c-475d-ba0c-fc0666c1688c" />
+  <img width="300" height="300" alt="Screenshot 2024-10-09 121115" src="https://github.com/user-attachments/assets/06709532-0c81-47cf-bb3e-9e62db08df01" />
+</p>
+
+
+
+
+
